@@ -124,10 +124,15 @@ void FH_PMR_convert(FHdata AllData , string filename){
     OutputFile.close();
 }
 
-int main(){
+int main(int argc , char* argv[]){
+    string filename(argv[1]);  // Reading the name of the input .txt file describing the Hamiltonian
     FHdata Data;
-    Data = Data_extract("FHinput_test.txt");
-    string filename("FermHub_test.txt");
-    FH_PMR_convert(Data , filename);
+    Data = Data_extract(filename);
+
+    size_t pos = filename.rfind('.');
+    string output = filename.substr(0, pos);
+
+    string OutputName(output+"_QMC.txt");
+    FH_PMR_convert(Data , OutputName);
     return 0;
 }
