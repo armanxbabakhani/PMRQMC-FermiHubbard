@@ -18,7 +18,8 @@ struct FHdata{
 
 void Print_offdiag(ofstream& output , int i , int j , double t){
     // IMPORTANT NOTE: here it is implicitly assumed that i < j
-    string minusHalft = to_string(-0.5*t) , plusHalft = to_string(0.5*t);
+    int tail = pow(-1 , j - i + 1);
+    string minusHalft = to_string(-0.5*t*tail) , plusHalft = to_string(0.5*tail);
     output << minusHalft << " ";
     for(int delta = 0; delta < j - i + 1; delta++){
         output << to_string(i + delta) << " 3 ";
@@ -95,7 +96,7 @@ void FH_PMR_convert(FHdata AllData , string filename){
     double t = AllData.t , U = AllData.U;
     vector<vector<bool>> A = AllData.Adjacency;
     int N = A.size();
-    string Uover4 = to_string(U/4);
+    string Uover4 = to_string(U/4) , UNover4 = to_string(U*N/4);
 
     ofstream OutputFile(filename);
     // Print the Diagonal part
@@ -104,6 +105,8 @@ void FH_PMR_convert(FHdata AllData , string filename){
     }
 
     // Havent included the constant shift of U*N/4 (yet)
+
+    OutputFile << UNover4 << " 1 0" << endl;  
 
     // The diagonal (D0) part:
     for(int i = 1; i < N+1; i++){
@@ -114,7 +117,7 @@ void FH_PMR_convert(FHdata AllData , string filename){
 
     // The off-diagonal part:
     for(int i = 0; i < N; i++){
-        for(int j = i; j < N; j++){
+        for(int j = i+1; j < N; j++){
             if(A[i][j]){
                 Print_offdiag(OutputFile , i + 1 , j + 1 , t); // For spin up
                 Print_offdiag(OutputFile , i + N + 1 , j + 1 + N , t); // For spin down
@@ -132,7 +135,8 @@ int main(int argc , char* argv[]){
     size_t pos = filename.rfind('.');
     string output = filename.substr(0, pos);
 
-    string OutputName(output+"_QMC.txt");
+    string OutputName(output+"_PMRQMC.txt");
     FH_PMR_convert(Data , OutputName);
     return 0;
+    
 }
