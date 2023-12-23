@@ -4,6 +4,7 @@
         "iosfwd": "cpp",
         "ostream": "cpp",
         "bitset": "cpp",
-        "string_view": "cpp"
+        "string_view": "cpp",
+        "string": "cpp"
     }
 }

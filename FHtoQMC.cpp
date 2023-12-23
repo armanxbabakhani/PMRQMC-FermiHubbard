@@ -5,6 +5,7 @@
 #include <complex>
 #include <algorithm>
 #include <numeric>
+#include <iterator>
 #include <cmath>
 
 using namespace std;
@@ -22,14 +23,14 @@ void Print_offdiag(ofstream& output , int i , int j , double t){
     string minusHalft = to_string(-0.5*t*tail) , plusHalft = to_string(0.5*tail);
     output << minusHalft << " ";
     for(int delta = 0; delta < j - i + 1; delta++){
-        output << to_string(i + delta) << " 3 ";
+        output << to_string(i + delta) << " 3 1 2 ";
     }
-    output << i << " 1 " << j << " 1"<< endl;
+    output << i << " 1 1 2 " << j << " 1 1 2"<< endl;
     output << plusHalft << " ";
     for(int delta = 1; delta < j-i; delta++){
-        output << to_string(i + delta) << " 3 ";
+        output << to_string(i + delta) << " 3 1 2 ";
     }
-    output << i << " 1 " << j << " 1" << endl;
+    output << i << " 1 1 2 " << j << " 1 1 2" << endl;
 }
 
 FHdata Data_extract(const string& filename) {
@@ -48,25 +49,41 @@ FHdata Data_extract(const string& filename) {
     string line;
     while(getline(inputFile, line)){
         istringstream iss(line);
-        char variable1 , variable2;
-        iss >> variable1 >> variable2; // This is for the equal sign or : sign (used for adjacency list)
-        if(variable1 == 't'){
-            iss >> t;
+        vector<string> tokens(std::istream_iterator<string>{iss},std::istream_iterator<string> ());
+        if(tokens[0][0] == 't'){
+            t = stod(tokens[2]);
         }
-        else if(variable1 == 'U'){
-            iss >> U;
+        else if(tokens[0][0] == 'U'){
+            U = stod(tokens[2]);
         }
         // Counting the nodes on the graph
-        else if(variable2 == ':'){
-            int CurrentNode = variable1 - '0' , node;
+        else{
+            //size_t ColonPos = line.find(':');
+            //string Node = line.substr(0, ColonPos);
+            int CurrentNode , node , nodestart;
+            bool coloncontained = true;
+            if(tokens[0][tokens[0].size()-1] == ':'){
+                CurrentNode = stoi(tokens[0].substr(0,tokens[0].size()-1));
+            }
+            else{
+                CurrentNode = stoi(tokens[0]);
+                coloncontained = false;
+            }
             pair<int, vector<int>> NodeList;
             vector<int> adjacency;
             if(CurrentNode > NodeCount){
                 NodeCount = CurrentNode;
             }
             NodeList.first = CurrentNode;
-            while(iss >> node){
-                adjacency.push_back(node);
+
+            if(coloncontained){
+                nodestart = 1;
+            }
+            else{
+                nodestart = 2;
+            }
+            for(int i=nodestart; i < tokens.size();i++){
+                adjacency.push_back(stoi(tokens[i]));
             }
             NodeList.second = adjacency;
             AdjacencyList.push_back(NodeList);
@@ -96,6 +113,7 @@ void FH_PMR_convert(FHdata AllData , string filename){
     double t = AllData.t , U = AllData.U;
     vector<vector<bool>> A = AllData.Adjacency;
     int N = A.size();
+    cout << "Number of particles is " << N << endl;
     string Uover4 = to_string(U/4) , UNover4 = to_string(U*N/4);
 
     ofstream OutputFile(filename);
@@ -105,22 +123,22 @@ void FH_PMR_convert(FHdata AllData , string filename){
     }
 
     // Havent included the constant shift of U*N/4 (yet)
-
-    OutputFile << UNover4 << " 1 0" << endl;  
-
-    // The diagonal (D0) part:
-    for(int i = 1; i < N+1; i++){
-        OutputFile << Uover4 << " " << i << " 3" << endl;
-        OutputFile << Uover4 << " " << i + N << " 3" << endl;
-        OutputFile << Uover4 << " " << i << " 3 " << i + N << " 3" << endl; 
+    if(abs(U)>1E-6){
+        OutputFile << UNover4 << " 1 0 1 2" << endl;  
+        // The diagonal (D0) part:
+        for(int i = 1; i < N+1; i++){
+            OutputFile << Uover4 << " " << i << " 3 1 2" << endl;
+            OutputFile << Uover4 << " " << i + N << " 3 1 2" << endl;
+            OutputFile << Uover4 << " " << i << " 3 1 2 " << i + N << " 3 1 2" << endl; 
+        }
     }
-
+    
     // The off-diagonal part:
     for(int i = 0; i < N; i++){
         for(int j = i+1; j < N; j++){
             if(A[i][j]){
-                Print_offdiag(OutputFile , i + 1 , j + 1 , t); // For spin up
-                Print_offdiag(OutputFile , i + N + 1 , j + 1 + N , t); // For spin down
+                Print_offdiag(OutputFile , i + 1, j + 1 , t); // For spin up
+                Print_offdiag(OutputFile , i + N + 1 , j + N + 1 , t); // For spin down
             }
         }
     } 
